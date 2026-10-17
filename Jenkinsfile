@@ -1,97 +1,12 @@
-// CI pipeline: merge to main -> Kaniko build -> in-cluster registry -> bump GitOps tag.
-// Contract: infr-as-a-code/specs/001-k3s-cicd-platform/contracts/pipeline.md
-// Registry: http://192.168.68.52:30500 (in-cluster, LAN only — GHCR fallback,
-// see research.md D2 in the infr-as-a-code repo).
-pipeline {
-    agent {
-        kubernetes {
-            defaultContainer 'git'
-            yaml '''
-apiVersion: v1
-kind: Pod
-metadata:
-  labels: { app: jenkins-agent-demo-symfony }
-spec:
-  restartPolicy: Never
-  containers:
-    - name: kaniko
-      image: gcr.io/kaniko-project/executor:v1.24.0-debug
-      command: ["/busybox/sleep"]
-      args: ["99d"]
-    - name: git
-      image: alpine/git:2.49.1
-      command: ["sleep"]
-      args: ["99d"]
-      env:
-        - name: GITHUB_USER
-          valueFrom: { secretKeyRef: { name: jenkins-github, key: username } }
-        - name: GITHUB_TOKEN
-          valueFrom: { secretKeyRef: { name: jenkins-github, key: token } }
-'''
-        }
-    }
-
-    options {
-        disableConcurrentBuilds()
-    }
-
-    stages {
-        stage('Checkout') {
-            steps {
-                container('git') {
-                    checkout scm
-                    script {
-                        // the workspace is owned by the jnlp (jenkins) user;
-                        // this container runs as root -> mark it safe for git
-                        sh 'git config --global --add safe.directory "${WORKSPACE}"'
-                        env.IMAGE_TAG = sh(returnStdout: true, script: 'git rev-parse --short HEAD').trim()
-                        env.IMAGE = '192.168.68.52:30500/demo-symfony-k3s'
-                        echo "Building ${env.IMAGE}:${env.IMAGE_TAG}"
-                    }
-                }
-            }
-        }
-
-        stage('Build & Push image') {
-            steps {
-                container('kaniko') {
-                    sh '''
-                        /kaniko/executor \
-                          --context="${WORKSPACE}" \
-                          --dockerfile=Dockerfile \
-                          --insecure \
-                          --destination="${IMAGE}:${IMAGE_TAG}" \
-                          --destination="${IMAGE}:latest"
-                    '''
-                }
-            }
-        }
-
-        stage('Bump GitOps repository') {
-            steps {
-                container('git') {
-                    sh '''
-                        set -e
-                        git clone "https://x-access-token:${GITHUB_TOKEN}@github.com/piotrwojewoda/infr-as-a-code.git" infra
-                        cd infra
-                        sed -i "s|^  tag: .*|  tag: \\"${IMAGE_TAG}\\"|" clusters/malina/values/demo-symfony.yaml
-                        git config user.name "Jenkins CI"
-                        git config user.email "jenkins@kreciowo.pl"
-                        git add clusters/malina/values/demo-symfony.yaml
-                        if git diff --cached --quiet; then
-                            echo "Tag already up to date - nothing to commit."
-                        else
-                            git commit -m "chore(release): demo-symfony-k3s ${IMAGE_TAG}"
-                            git push origin main
-                        fi
-                    '''
-                }
-            }
-        }
-    }
-
-    post {
-        success { echo "Released ${IMAGE}:${IMAGE_TAG} - ArgoCD will roll it out to https://demo.kreciowo.pl" }
-        failure { echo 'Pipeline failed - the running deployment was NOT touched.' }
-    }
-}
+// CI pipeline: all stages (Checkout -> Test -> Build & Push -> Update GitOps)
+// are defined and enforced by the global shared library "malina-ci":
+// infr-as-a-code/jenkins/shared-library/vars/ciPipeline.groovy
+// Contract: infr-as-a-code/specs/002-tests-before-deploy/contracts/pipeline.md
+// NOTE: requires the shared library on infr-as-a-code main + Jenkins reload
+// (spec 002, phase 2) — do not merge this change before that lands.
+ciPipeline(
+    app: 'demo-symfony-k3s',
+    testImage: 'php:8.5-cli',
+    testDeps: [image: 'composer:2', command: 'composer install --no-interaction --prefer-dist --no-progress'],
+    gitopsValues: 'clusters/malina/values/demo-symfony.yaml',
+)
