@@ -22,9 +22,11 @@ ENV APP_ENV=prod \
     COMPOSER_ALLOW_SUPERUSER=1
 
 # pdo_pgsql for the PostgreSQL database, opcache for performance.
+# Note: -j1 avoids a parallel-make race in php extension builds
+# ("cp: cannot stat 'modules/*'" — docker-library/php#1245), observed on ARM64.
 RUN apt-get update \
  && apt-get install -y --no-install-recommends libpq-dev \
- && docker-php-ext-install pdo_pgsql opcache \
+ && docker-php-ext-install -j1 pdo_pgsql opcache \
  && apt-get purge -y libpq-dev \
  && apt-get autoremove -y \
  && rm -rf /var/lib/apt/lists/*
