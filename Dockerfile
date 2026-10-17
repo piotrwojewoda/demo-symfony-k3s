@@ -25,7 +25,7 @@ ENV APP_ENV=prod \
 # Note: Zend OPcache is built into PHP 8.5 and already enabled in the base
 # image (no docker-php-ext-install needed — it is no longer a shared ext).
 RUN apt-get update \
- && apt-get install -y --no-install-recommends libpq-dev \
+ && apt-get install -y --no-install-recommends libpq5 libpq-dev \
  && docker-php-ext-install pdo_pgsql \
  && apt-get purge -y libpq-dev \
  && apt-get autoremove -y \
