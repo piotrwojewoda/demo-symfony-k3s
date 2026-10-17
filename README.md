@@ -19,7 +19,7 @@ connect to a PostgreSQL database deployed next to it in the `demo` namespace.
 merge to main (GitHub)
   └─▶ Jenkins on k3s polls the repo (≤ 1 min)
         └─▶ Kaniko builds this repo's Dockerfile (linux/arm64)
-              └─▶ push ghcr.io/piotrwojewoda/demo-symfony-k3s:<short-sha> (+ :latest)
+              └─▶ push 192.168.68.52:30500/demo-symfony-k3s:<short-sha> (+ :latest)
                     └─▶ Jenkins bumps image.tag in piotrwojewoda/infr-as-a-code
                           └─▶ ArgoCD syncs → https://demo.kreciowo.pl
 ```

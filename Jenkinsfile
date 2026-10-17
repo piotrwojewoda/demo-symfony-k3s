@@ -1,5 +1,7 @@
-// CI pipeline: merge to main -> Kaniko build -> ghcr.io -> bump GitOps tag.
+// CI pipeline: merge to main -> Kaniko build -> in-cluster registry -> bump GitOps tag.
 // Contract: infr-as-a-code/specs/001-k3s-cicd-platform/contracts/pipeline.md
+// Registry: http://192.168.68.52:30500 (in-cluster, LAN only — GHCR fallback,
+// see research.md D2 in the infr-as-a-code repo).
 pipeline {
     agent {
         kubernetes {
@@ -16,9 +18,6 @@ spec:
       image: gcr.io/kaniko-project/executor:v1.24.0-debug
       command: ["/busybox/sleep"]
       args: ["99d"]
-      volumeMounts:
-        - name: ghcr-config
-          mountPath: /kaniko/.docker
     - name: git
       image: alpine/git:2.49.1
       command: ["sleep"]
@@ -28,13 +27,6 @@ spec:
           valueFrom: { secretKeyRef: { name: jenkins-github, key: username } }
         - name: GITHUB_TOKEN
           valueFrom: { secretKeyRef: { name: jenkins-github, key: token } }
-  volumes:
-    - name: ghcr-config
-      secret:
-        secretName: ghcr-push
-        items:
-          - key: .dockerconfigjson
-            path: config.json
 '''
         }
     }
@@ -53,7 +45,7 @@ spec:
                         // this container runs as root -> mark it safe for git
                         sh 'git config --global --add safe.directory "${WORKSPACE}"'
                         env.IMAGE_TAG = sh(returnStdout: true, script: 'git rev-parse --short HEAD').trim()
-                        env.IMAGE = 'ghcr.io/piotrwojewoda/demo-symfony-k3s'
+                        env.IMAGE = '192.168.68.52:30500/demo-symfony-k3s'
                         echo "Building ${env.IMAGE}:${env.IMAGE_TAG}"
                     }
                 }
@@ -67,6 +59,7 @@ spec:
                         /kaniko/executor \
                           --context="${WORKSPACE}" \
                           --dockerfile=Dockerfile \
+                          --insecure \
                           --destination="${IMAGE}:${IMAGE_TAG}" \
                           --destination="${IMAGE}:latest"
                     '''
