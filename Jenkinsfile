@@ -41,7 +41,6 @@ spec:
 
     options {
         disableConcurrentBuilds()
-        timestamps()
     }
 
     stages {
