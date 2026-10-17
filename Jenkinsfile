@@ -49,6 +49,9 @@ spec:
                 container('git') {
                     checkout scm
                     script {
+                        // the workspace is owned by the jnlp (jenkins) user;
+                        // this container runs as root -> mark it safe for git
+                        sh 'git config --global --add safe.directory "${WORKSPACE}"'
                         env.IMAGE_TAG = sh(returnStdout: true, script: 'git rev-parse --short HEAD').trim()
                         env.IMAGE = 'ghcr.io/piotrwojewoda/demo-symfony-k3s'
                         echo "Building ${env.IMAGE}:${env.IMAGE_TAG}"
