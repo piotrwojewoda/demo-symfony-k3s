@@ -21,12 +21,12 @@ ENV APP_ENV=prod \
     APP_DEBUG=0 \
     COMPOSER_ALLOW_SUPERUSER=1
 
-# pdo_pgsql for the PostgreSQL database, opcache for performance.
-# Note: -j1 avoids a parallel-make race in php extension builds
-# ("cp: cannot stat 'modules/*'" — docker-library/php#1245), observed on ARM64.
+# pdo_pgsql for the PostgreSQL database.
+# Note: Zend OPcache is built into PHP 8.5 and already enabled in the base
+# image (no docker-php-ext-install needed — it is no longer a shared ext).
 RUN apt-get update \
  && apt-get install -y --no-install-recommends libpq-dev \
- && docker-php-ext-install -j1 pdo_pgsql opcache \
+ && docker-php-ext-install pdo_pgsql \
  && apt-get purge -y libpq-dev \
  && apt-get autoremove -y \
  && rm -rf /var/lib/apt/lists/*
