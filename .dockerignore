@@ -1,0 +1,14 @@
+.git
+.gitignore
+.dockerignore
+Dockerfile
+Jenkinsfile
+README.md
+compose.yaml
+compose.override.yaml
+vendor
+var/cache
+var/log
+tests
+.env.local
+.env.*.local
