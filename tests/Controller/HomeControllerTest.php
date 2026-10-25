@@ -32,6 +32,9 @@ final class HomeControllerTest extends WebTestCase
         $content = (string) $client->getResponse()->getContent();
         self::assertStringContainsString('bibop.pl', $content);
         self::assertStringContainsString('weird creature', $content, 'bibop.pl must show the weird creature mascot');
+        self::assertStringContainsString('data-testid="chase-scene"', $content);
+        self::assertStringContainsString('@media (max-width: 480px)', $content);
+        self::assertStringContainsString('@media (prefers-reduced-motion: reduce)', $content);
         self::assertStringNotContainsString('kreciowo', $content);
     }
 

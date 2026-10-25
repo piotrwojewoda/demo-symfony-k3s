@@ -5,6 +5,7 @@
 {% block stylesheets %}
 <style>
     :root { color-scheme: dark; }
+    * { box-sizing: border-box; }
     body {
         margin: 0;
         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
@@ -12,43 +13,245 @@
         color: #e2e8f0;
         display: flex;
         min-height: 100vh;
+        min-height: 100svh;
         align-items: center;
         justify-content: center;
+        overflow-x: hidden;
     }
-    main { text-align: center; max-width: 640px; padding: 2rem; }
-    .mascot { width: 260px; height: auto; margin-bottom: 1rem; }
-    h1 { font-size: 3rem; font-weight: 700; margin: 0; letter-spacing: .02em; }
+    main {
+        width: 100%;
+        max-width: 840px;
+        padding: clamp(1rem, 5vw, 2rem);
+        text-align: center;
+    }
+    .mascot { display: block; width: 100%; height: auto; }
+    h1 {
+        margin: 0;
+        font-size: clamp(2.25rem, 8vw, 3.5rem);
+        font-weight: 700;
+        letter-spacing: .02em;
+    }
+
+    {% if site == 'bibop' %}
+    .chase-scene {
+        position: relative;
+        isolation: isolate;
+        width: 100%;
+        height: clamp(190px, 34vw, 270px);
+        margin: 0 auto clamp(.5rem, 2vw, 1rem);
+        overflow: hidden;
+        border-radius: 2rem;
+        background:
+            radial-gradient(circle at 78% 18%, rgb(250 204 21 / 10%) 0 2px, transparent 3px),
+            radial-gradient(circle at 22% 25%, rgb(255 255 255 / 24%) 0 1px, transparent 2px),
+            radial-gradient(circle at 48% 12%, rgb(255 255 255 / 16%) 0 1px, transparent 2px),
+            radial-gradient(ellipse at 50% 115%, #1e293b 0 48%, transparent 49%),
+            linear-gradient(180deg, #111c35, #172033);
+        box-shadow: inset 0 0 60px rgb(2 6 23 / 28%);
+    }
+    .chase-scene::after {
+        content: "";
+        position: absolute;
+        z-index: -1;
+        right: -8%;
+        bottom: 12%;
+        left: -8%;
+        height: 2px;
+        background: linear-gradient(90deg, transparent, #334155 12% 88%, transparent);
+        opacity: .8;
+    }
+    .runner {
+        position: absolute;
+        bottom: 13%;
+        will-change: transform, opacity;
+    }
+    .runner .mascot { overflow: visible; }
+    .creature {
+        z-index: 2;
+        left: -25%;
+        width: 25%;
+        animation: creature-chase 5.8s linear infinite;
+    }
+    .mole {
+        z-index: 3;
+        left: 15%;
+        width: 18%;
+        animation: mole-escape 5.8s linear infinite;
+    }
+    .creature .mascot {
+        transform-origin: 50% 100%;
+        animation: creature-bound .38s ease-in-out infinite alternate;
+    }
+    .mole .mascot {
+        transform-origin: 50% 100%;
+        animation: mole-bound .24s ease-in-out infinite alternate;
+    }
+    .creature .leg {
+        transform-box: fill-box;
+        transform-origin: 50% 0;
+        animation: leg-kick .3s ease-in-out infinite alternate;
+    }
+    .creature .leg:nth-of-type(2) { animation-delay: -.15s; }
+    .creature .arm {
+        transform-box: fill-box;
+        transform-origin: 100% 50%;
+        animation: arm-reach .38s ease-in-out infinite alternate;
+    }
+    .speed-lines {
+        position: absolute;
+        top: 37%;
+        left: -28%;
+        width: 34%;
+        height: 28%;
+        opacity: .55;
+        background: repeating-linear-gradient(180deg, transparent 0 7px, #94a3b8 8px 9px, transparent 10px 15px);
+        clip-path: polygon(0 15%, 100% 0, 100% 22%, 18% 42%, 100% 55%, 100% 76%, 0 100%);
+        animation: speed-pulse .35s ease-in-out infinite alternate;
+    }
+    .dust {
+        position: absolute;
+        z-index: -1;
+        bottom: -2%;
+        left: 12%;
+        width: 24%;
+        aspect-ratio: 1;
+        border-radius: 50%;
+        background: #64748b;
+        opacity: 0;
+        animation: dust-puff .7s ease-out infinite;
+    }
+    .mole .dust { animation-duration: .48s; animation-delay: -.2s; }
+    .chase-caption {
+        position: absolute;
+        right: 0;
+        bottom: 4%;
+        left: 0;
+        margin: 0;
+        padding-right: 5%;
+        color: #64748b;
+        text-align: right;
+        font-size: clamp(.68rem, 1.8vw, .82rem);
+        font-style: italic;
+        letter-spacing: .04em;
+    }
+
+    @keyframes creature-chase {
+        0% { transform: translateX(-12%); opacity: 0; }
+        5% { opacity: 1; }
+        86% { opacity: 1; }
+        96%, 100% { transform: translateX(560%); opacity: 0; }
+    }
+    @keyframes mole-escape {
+        0% { transform: translateX(-60%); opacity: 0; }
+        5% { opacity: 1; }
+        86% { opacity: 1; }
+        96%, 100% { transform: translateX(620%); opacity: 0; }
+    }
+    @keyframes creature-bound {
+        from { transform: translateY(0) rotate(3deg) scaleY(1); }
+        to { transform: translateY(-9%) rotate(-2deg) scaleY(1.03); }
+    }
+    @keyframes mole-bound {
+        from { transform: translateY(0) rotate(-5deg); }
+        to { transform: translateY(-12%) rotate(4deg); }
+    }
+    @keyframes leg-kick {
+        from { transform: rotate(-18deg); }
+        to { transform: rotate(22deg); }
+    }
+    @keyframes arm-reach {
+        from { transform: rotate(-8deg); }
+        to { transform: rotate(12deg); }
+    }
+    @keyframes speed-pulse {
+        from { transform: scaleX(.65); opacity: .25; }
+        to { transform: scaleX(1); opacity: .65; }
+    }
+    @keyframes dust-puff {
+        0% { transform: translate(0, 0) scale(.25); opacity: 0; }
+        20% { opacity: .35; }
+        100% { transform: translate(-130%, -70%) scale(1.3); opacity: 0; }
+    }
+
+    @media (max-width: 480px) {
+        main { padding-inline: .75rem; }
+        .chase-scene { height: 190px; border-radius: 1.35rem; }
+        .creature { width: 31%; }
+        .mole { width: 21%; }
+        .chase-caption { bottom: 3%; padding-right: 6%; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        .runner, .runner .mascot, .creature .leg, .creature .arm, .speed-lines, .dust {
+            animation: none;
+        }
+        .creature { left: 8%; transform: none; opacity: 1; }
+        .mole { left: 65%; transform: none; opacity: 1; }
+        .speed-lines, .dust { display: none; }
+    }
+    {% else %}
+    main > .mascot { width: 260px; max-width: 100%; margin: 0 auto 1rem; }
+    {% endif %}
 </style>
 {% endblock %}
 
 {% block body %}
 <main>
     {% if site == 'bibop' %}
-    {# bibop.pl — a weird creature #}
-    <svg class="mascot" viewBox="0 0 220 175" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="A weird creature">
-        <!-- antennae -->
-        <path d="M95 42 Q88 18 75 12" stroke="#7c5cd6" stroke-width="5" fill="none" stroke-linecap="round"/>
-        <circle cx="73" cy="10" r="6" fill="#facc15"/>
-        <path d="M125 42 Q132 14 148 9" stroke="#7c5cd6" stroke-width="5" fill="none" stroke-linecap="round"/>
-        <circle cx="150" cy="8" r="6" fill="#4ade80"/>
-        <!-- blob body -->
-        <path d="M60 62 Q45 122 80 142 Q110 157 145 142 Q180 120 165 66 Q150 32 112 34 Q75 32 60 62 Z" fill="#8b5cf6"/>
-        <!-- belly -->
-        <ellipse cx="112" cy="118" rx="30" ry="20" fill="#a78bfa"/>
-        <!-- three eyes -->
-        <circle cx="85" cy="74" r="12" fill="#ffffff"/><circle cx="85" cy="76" r="5" fill="#111827"/>
-        <circle cx="140" cy="72" r="9" fill="#ffffff"/><circle cx="141" cy="73.5" r="4" fill="#111827"/>
-        <circle cx="112" cy="60" r="6" fill="#ffffff"/><circle cx="112" cy="61" r="2.6" fill="#dc2626"/>
-        <!-- zigzag mouth -->
-        <polyline points="85,102 95,94 105,104 115,94 125,104 135,96" stroke="#1e1b29" stroke-width="4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
-        <!-- arms -->
-        <path d="M62 97 Q35 92 28 72" stroke="#7c5cd6" stroke-width="8" fill="none" stroke-linecap="round"/>
-        <path d="M163 97 Q192 107 198 127" stroke="#7c5cd6" stroke-width="8" fill="none" stroke-linecap="round"/>
-        <!-- tentacle legs -->
-        <path d="M90 148 q-6 14 -16 16" stroke="#7c5cd6" stroke-width="7" fill="none" stroke-linecap="round"/>
-        <path d="M112 153 q0 12 -4 15" stroke="#7c5cd6" stroke-width="7" fill="none" stroke-linecap="round"/>
-        <path d="M134 148 q8 12 18 14" stroke="#7c5cd6" stroke-width="7" fill="none" stroke-linecap="round"/>
-    </svg>
+    {# bibop.pl — a weird creature chasing a very motivated little mole #}
+    <div class="chase-scene" role="img" aria-label="A weird creature chasing a little mole" data-testid="chase-scene">
+        <div class="runner creature" aria-hidden="true">
+            <span class="speed-lines"></span>
+            <span class="dust"></span>
+            <svg class="mascot" viewBox="0 0 220 175" xmlns="http://www.w3.org/2000/svg">
+                <!-- antennae -->
+                <path d="M95 42 Q88 18 75 12" stroke="#7c5cd6" stroke-width="5" fill="none" stroke-linecap="round"/>
+                <circle cx="73" cy="10" r="6" fill="#facc15"/>
+                <path d="M125 42 Q132 14 148 9" stroke="#7c5cd6" stroke-width="5" fill="none" stroke-linecap="round"/>
+                <circle cx="150" cy="8" r="6" fill="#4ade80"/>
+                <!-- blob body -->
+                <path d="M60 62 Q45 122 80 142 Q110 157 145 142 Q180 120 165 66 Q150 32 112 34 Q75 32 60 62 Z" fill="#8b5cf6"/>
+                <!-- belly -->
+                <ellipse cx="112" cy="118" rx="30" ry="20" fill="#a78bfa"/>
+                <!-- three eyes -->
+                <circle cx="85" cy="74" r="12" fill="#ffffff"/><circle cx="89" cy="76" r="5" fill="#111827"/>
+                <circle cx="140" cy="72" r="9" fill="#ffffff"/><circle cx="144" cy="73.5" r="4" fill="#111827"/>
+                <circle cx="112" cy="60" r="6" fill="#ffffff"/><circle cx="114" cy="61" r="2.6" fill="#dc2626"/>
+                <!-- zigzag mouth -->
+                <polyline points="85,102 95,94 105,104 115,94 125,104 135,96" stroke="#1e1b29" stroke-width="4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+                <!-- arms -->
+                <path d="M62 97 Q35 92 28 72" stroke="#7c5cd6" stroke-width="8" fill="none" stroke-linecap="round"/>
+                <path class="arm" d="M163 97 Q192 82 202 65" stroke="#7c5cd6" stroke-width="8" fill="none" stroke-linecap="round"/>
+                <!-- tentacle legs -->
+                <path class="leg" d="M90 148 q-6 14 -16 16" stroke="#7c5cd6" stroke-width="7" fill="none" stroke-linecap="round"/>
+                <path class="leg" d="M112 153 q0 12 -4 15" stroke="#7c5cd6" stroke-width="7" fill="none" stroke-linecap="round"/>
+                <path class="leg" d="M134 148 q8 12 18 14" stroke="#7c5cd6" stroke-width="7" fill="none" stroke-linecap="round"/>
+            </svg>
+        </div>
+
+        <div class="runner mole" aria-hidden="true">
+            <span class="speed-lines"></span>
+            <span class="dust"></span>
+            <svg class="mascot" viewBox="0 40 110 110" xmlns="http://www.w3.org/2000/svg">
+                <!-- dirt mound -->
+                <ellipse cx="55" cy="132" rx="46" ry="10" fill="#5b4632"/>
+                <!-- mole body -->
+                <ellipse cx="55" cy="104" rx="30" ry="26" fill="#3f3f46"/>
+                <!-- head -->
+                <circle cx="55" cy="80" r="18" fill="#3f3f46"/>
+                <!-- snout + nose -->
+                <ellipse cx="55" cy="88" rx="9" ry="6" fill="#6b6b73"/>
+                <circle cx="55" cy="85" r="3" fill="#f2a0a0"/>
+                <!-- eyes -->
+                <circle cx="47" cy="76" r="2.6" fill="#ffffff"/><circle cx="48.2" cy="76.4" r="1.3" fill="#111827"/>
+                <circle cx="63" cy="76" r="2.6" fill="#ffffff"/><circle cx="64.2" cy="76.4" r="1.3" fill="#111827"/>
+                <!-- front paws -->
+                <ellipse cx="29" cy="108" rx="8" ry="5" fill="#d9a0a0" transform="rotate(-20 29 108)"/>
+                <ellipse cx="81" cy="108" rx="8" ry="5" fill="#d9a0a0" transform="rotate(20 81 108)"/>
+            </svg>
+        </div>
+        <p class="chase-caption" aria-hidden="true">prawie go ma…</p>
+    </div>
     {% else %}
     {# kreciowo.pl — a little mole with a house #}
     <svg class="mascot" viewBox="0 0 220 175" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="A little mole with a house">
