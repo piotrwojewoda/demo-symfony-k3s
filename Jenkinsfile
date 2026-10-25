@@ -9,4 +9,5 @@ ciPipeline(
     testImage: 'php:8.5-cli',
     testDeps: [image: 'composer:2', command: 'composer install --no-interaction --prefer-dist --no-progress'],
     gitopsValues: 'clusters/malina/values/demo-symfony.yaml',
+    deploy: [namespace: 'demo', deployment: 'demo-symfony', argoApp: 'demo-symfony'],   // spec 005
 )
