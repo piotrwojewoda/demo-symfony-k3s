@@ -5,38 +5,43 @@ declare(strict_types=1);
 namespace App\Tests\Controller;
 
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
-use Symfony\Component\HttpKernel\Kernel;
 
 final class HomeControllerTest extends WebTestCase
 {
-    public function testHomePageShowsVersionTable(): void
+    public function testHomePageShowsKreciowoByDefault(): void
     {
         $client = self::createClient();
         $client->request('GET', '/');
 
         self::assertResponseIsSuccessful();
-        self::assertSelectorTextContains('h1', 'Welcome to');
 
-        $content = $client->getResponse()->getContent();
-        self::assertIsString($content);
-        self::assertStringContainsString('Symfony', $content);
-        self::assertStringContainsString(Kernel::VERSION, $content);
-        self::assertStringContainsString(PHP_VERSION, $content);
-        self::assertStringContainsString('Deployed release', $content);
-        self::assertStringContainsString('Database', $content);
+        $content = (string) $client->getResponse()->getContent();
+        self::assertStringContainsString('kreciowo.pl', $content);
+        self::assertStringContainsString('mole', $content, 'kreciowo.pl must show the mole mascot');
+        self::assertStringNotContainsString('Database', $content);
+        self::assertStringNotContainsString('bibop', $content);
     }
 
-    public function testHomePageWorksWhenDatabaseIsDown(): void
+    public function testHomePageShowsBibopForBibopHost(): void
     {
         $client = self::createClient();
-        $client->request('GET', '/');
+        $client->request('GET', '/', [], [], ['HTTP_HOST' => 'bibop.pl']);
 
         self::assertResponseIsSuccessful();
-        self::assertStringContainsString(
-            'unavailable',
-            (string) $client->getResponse()->getContent(),
-            'The start page must render even when the database connection fails',
-        );
+
+        $content = (string) $client->getResponse()->getContent();
+        self::assertStringContainsString('bibop.pl', $content);
+        self::assertStringContainsString('weird creature', $content, 'bibop.pl must show the weird creature mascot');
+        self::assertStringNotContainsString('kreciowo', $content);
+    }
+
+    public function testHomePageShowsBibopForWwwBibopHost(): void
+    {
+        $client = self::createClient();
+        $client->request('GET', '/', [], [], ['HTTP_HOST' => 'www.bibop.pl']);
+
+        self::assertResponseIsSuccessful();
+        self::assertStringContainsString('bibop.pl', (string) $client->getResponse()->getContent());
     }
 
     public function testHealthzReturnsPlainOk(): void

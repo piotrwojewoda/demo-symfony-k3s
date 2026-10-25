@@ -4,33 +4,25 @@ declare(strict_types=1);
 
 namespace App\Controller;
 
-use Doctrine\DBAL\Connection;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
-use Symfony\Component\HttpKernel\Kernel;
 use Symfony\Component\Routing\Attribute\Route;
 
 final class HomeController extends AbstractController
 {
     /**
-     * The start page. Nothing more, by design.
+     * The start page. Shows only the visited domain name and its mascot:
+     * kreciowo.pl -> a little mole with a house; bibop.pl -> a weird creature.
      */
     #[Route('/', name: 'home', methods: ['GET'])]
-    public function index(Connection $connection): Response
+    public function index(Request $request): Response
     {
-        try {
-            $connection->fetchOne('SELECT 1');
-            $database = 'connected';
-        } catch (\Throwable) {
-            $database = 'unavailable';
-        }
+        $site = str_contains($request->getHost(), 'bibop') ? 'bibop' : 'kreciowo';
 
         return $this->render('home.html.twig', [
-            'symfony_version' => Kernel::VERSION,
-            'php_version' => PHP_VERSION,
-            'environment' => $this->getParameter('kernel.environment'),
-            'app_version' => getenv('APP_VERSION') ?: 'dev',
-            'database' => $database,
+            'site' => $site,
+            'domain' => $site.'.pl',
         ]);
     }
 
