@@ -136,31 +136,64 @@ final class ElasticsearchClient
     }
 
     /**
-     * Creates the index + seed documents when they do not exist yet.
-     * Idempotent: an existing index is left untouched.
+     * Creates the index + seed documents when they do not exist yet, and
+     * keeps the single-node cluster green.
+     *
+     * A replica can never be assigned on a one-node cluster, so a default
+     * `number_of_replicas: 1` would leave one unassigned shard -> cluster
+     * health `yellow` forever (ArgoCD shows the ES app as Progressing).
+     * The index template makes every `documents*` index replica-free.
      */
     private function ensureIndex(): void
     {
-        if ($this->indexExists()) {
-            return;
-        }
-
-        $this->request('PUT', '/'.self::INDEX, [
+        $this->request('PUT', '/_index_template/demo-documents', [
             'json' => [
-                'mappings' => [
-                    'properties' => [
-                        'title' => ['type' => 'text'],
-                        'body' => ['type' => 'text'],
-                    ],
-                ],
+                'index_patterns' => ['documents*'],
+                'template' => ['settings' => ['number_of_replicas' => 0]],
             ],
         ]);
 
-        foreach (self::SEED_DOCUMENTS as $id => $document) {
-            $this->request('PUT', '/'.self::INDEX.'/_doc/'.$id.'?refresh=true', [
-                'json' => $document,
+        if (!$this->indexExists()) {
+            $this->request('PUT', '/'.self::INDEX, [
+                'json' => [
+                    'settings' => ['number_of_replicas' => 0],
+                    'mappings' => [
+                        'properties' => [
+                            'title' => ['type' => 'text'],
+                            'body' => ['type' => 'text'],
+                        ],
+                    ],
+                ],
             ]);
+
+            foreach (self::SEED_DOCUMENTS as $id => $document) {
+                $this->request('PUT', '/'.self::INDEX.'/_doc/'.$id.'?refresh=true', [
+                    'json' => $document,
+                ]);
+            }
+
+            return;
         }
+
+        $this->ensureZeroReplicas();
+    }
+
+    /**
+     * Heals an index that was created before the template existed (e.g. by
+     * an older image): flips `number_of_replicas` to 0 exactly once.
+     */
+    private function ensureZeroReplicas(): void
+    {
+        $settings = $this->request('GET', '/'.self::INDEX.'/_settings/index.number_of_replicas');
+        $replicas = (string) ($settings[self::INDEX]['settings']['index']['number_of_replicas'] ?? '0');
+
+        if ('0' === $replicas) {
+            return;
+        }
+
+        $this->request('PUT', '/'.self::INDEX.'/_settings', [
+            'json' => ['index' => ['number_of_replicas' => 0]],
+        ]);
     }
 
     private function indexExists(): bool

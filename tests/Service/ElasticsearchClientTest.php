@@ -69,10 +69,12 @@ final class ElasticsearchClientTest extends TestCase
         self::assertSame('malina', $result['hits'][0]['title']);
         self::assertSame(1.5, $result['hits'][0]['score']);
 
-        // 1x HEAD + 1x index creation + 4 seed documents + 1x search
-        self::assertCount(7, $this->requests);
-        self::assertSame('HEAD', $this->requests[0]['method']);
-        self::assertStringEndsWith('/documents/_search', $this->requests[6]['url']);
+        // 1x index template + 1x HEAD + 1x index creation + 4 seed documents + 1x search
+        self::assertCount(8, $this->requests);
+        self::assertSame('PUT', $this->requests[0]['method']);
+        self::assertStringEndsWith('/_index_template/demo-documents', $this->requests[0]['url']);
+        self::assertSame('HEAD', $this->requests[1]['method']);
+        self::assertStringEndsWith('/documents/_search', $this->requests[7]['url']);
     }
 
     public function testSearchDoesNotReseedAnExistingIndex(): void
@@ -80,6 +82,9 @@ final class ElasticsearchClientTest extends TestCase
         $client = $this->client(static function (string $method, string $url): MockResponse {
             if ('HEAD' === $method) {
                 return new MockResponse('', ['http_code' => 200]);
+            }
+            if ('GET' === $method && str_contains($url, '_settings')) {
+                return new MockResponse('{"documents":{"settings":{"index":{"number_of_replicas":"0"}}}}');
             }
 
             return new MockResponse('{"hits":{"total":{"value":0},"hits":[]}}');
@@ -89,7 +94,34 @@ final class ElasticsearchClientTest extends TestCase
 
         self::assertSame(0, $result['total']);
         self::assertSame([], $result['hits']);
-        self::assertCount(2, $this->requests, 'existing index must not be seeded again');
+        self::assertCount(4, $this->requests, 'existing index must not be seeded again');
+        $puts = array_filter($this->requests, static fn (array $r): bool => 'PUT' === $r['method'] && str_contains($r['url'], '_settings'));
+        self::assertSame([], $puts, 'a replica-free index needs no settings update');
+    }
+
+    public function testExistingIndexWithReplicasIsHealedToZeroReplicas(): void
+    {
+        $client = $this->client(static function (string $method, string $url): MockResponse {
+            if ('HEAD' === $method) {
+                return new MockResponse('', ['http_code' => 200]);
+            }
+            if ('GET' === $method && str_contains($url, '_settings')) {
+                return new MockResponse('{"documents":{"settings":{"index":{"number_of_replicas":"1"}}}}');
+            }
+            if ('PUT' === $method) {
+                return new MockResponse('{"acknowledged":true}');
+            }
+
+            return new MockResponse('{"hits":{"total":{"value":0},"hits":[]}}');
+        });
+
+        $client->search('nothing');
+
+        $settingsPuts = array_values(array_filter(
+            $this->requests,
+            static fn (array $r): bool => 'PUT' === $r['method'] && str_ends_with($r['url'], '/documents/_settings'),
+        ));
+        self::assertCount(1, $settingsPuts, 'single-node cluster must run replica-free');
     }
 
     public function testUnconfiguredClientRefusesToCallElasticsearch(): void
