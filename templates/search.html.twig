@@ -1,0 +1,90 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ domain }} — search{% endblock %}
+
+{% block stylesheets %}
+<style>
+    :root { color-scheme: dark; }
+    body {
+        margin: 0;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+        background: #0f172a;
+        color: #e2e8f0;
+        display: flex;
+        min-height: 100vh;
+        align-items: center;
+        justify-content: center;
+    }
+    main { width: 100%; max-width: 720px; padding: 2rem; }
+    h1 { font-size: 2rem; margin: 0 0 .25rem; letter-spacing: .02em; }
+    .sub { margin: 0 0 1.5rem; color: #94a3b8; font-size: .95rem; }
+    form { display: flex; gap: .5rem; margin-bottom: 1.5rem; }
+    input[type="search"] {
+        flex: 1;
+        padding: .75rem 1rem;
+        border-radius: .6rem;
+        border: 1px solid #334155;
+        background: #1e293b;
+        color: #e2e8f0;
+        font-size: 1rem;
+    }
+    input[type="search"]:focus { outline: 2px solid #8b5cf6; border-color: transparent; }
+    button {
+        padding: .75rem 1.25rem;
+        border: 0;
+        border-radius: .6rem;
+        background: #8b5cf6;
+        color: #fff;
+        font-size: 1rem;
+        cursor: pointer;
+    }
+    button:hover { background: #7c3aed; }
+    .meta { color: #94a3b8; font-size: .9rem; margin-bottom: 1rem; }
+    .result-card {
+        background: #1e293b;
+        border: 1px solid #334155;
+        border-radius: .75rem;
+        padding: 1rem 1.25rem;
+        margin-bottom: .75rem;
+    }
+    .result-card h2 { font-size: 1.05rem; margin: 0 0 .35rem; color: #c4b5fd; }
+    .result-card p { margin: 0; color: #cbd5e1; line-height: 1.45; }
+    .notice {
+        background: #3f1d1d;
+        border: 1px solid #7f1d1d;
+        color: #fecaca;
+        border-radius: .75rem;
+        padding: 1rem 1.25rem;
+    }
+    .empty { color: #94a3b8; }
+    a { color: #a78bfa; }
+</style>
+{% endblock %}
+
+{% block body %}
+<main>
+    <h1>{{ domain }}</h1>
+    <p class="sub">Search the demo documents — powered by Elasticsearch.</p>
+
+    <form method="get" action="/search" role="search">
+        <input type="search" name="q" value="{{ query }}" placeholder="e.g. malina" aria-label="Search" autofocus>
+        <button type="submit">Search</button>
+    </form>
+
+    {% if error %}
+        <div class="notice">{{ error }}</div>
+    {% elseif query != '' %}
+        <p class="meta">{{ total }} result{{ total == 1 ? '' : 's' }} for &bdquo;{{ query }}&rdquo;</p>
+        {% for hit in hits %}
+            <article class="result-card">
+                <h2>{{ hit.title }}</h2>
+                <p>{{ hit.body }}</p>
+            </article>
+        {% else %}
+            <p class="empty">Nothing found. Try another word.</p>
+        {% endfor %}
+    {% endif %}
+
+    <p class="sub" style="margin-top:1.5rem"><a href="/">← back to {{ domain }}</a></p>
+</main>
+{% endblock %}
